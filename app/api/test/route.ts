@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'crypto'
 import { prisma } from '@/app/lib/prisma';
+import { redis } from '@/app/lib/redis';
 
 export async function POST(request: Request) {
     try {
@@ -21,6 +22,16 @@ export async function POST(request: Request) {
             );
         }
 
+        const redisKey = `test_record:${id1}_${id2}`;
+        const cachedUserID = await redis.get(redisKey);
+
+        if (cachedUserID) {
+            return NextResponse.json(
+                { success: true, userID: cachedUserID, message: 'Record already exists in cache' },
+                { status: 200 }
+            );
+        }
+
         const existRecord = await prisma.test.findUnique({
             where: {
                 id1_id2: { id1, id2 }
@@ -28,6 +39,8 @@ export async function POST(request: Request) {
         });
 
         if (existRecord) {
+            await redis.set(redisKey, existRecord.userID, 'EX', 3600);
+
             return NextResponse.json(
                 { success: true, userID: existRecord.userID, message: 'Record already exists' },
                 { status: 200 }
@@ -43,6 +56,8 @@ export async function POST(request: Request) {
                 userID: newUserID
             }
         });
+
+        await redis.set(redisKey, newUserID, 'EX', 3600);
 
         return NextResponse.json(
             { success: true, userID: newUserID }, 

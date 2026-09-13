@@ -7,7 +7,7 @@ Every part of this project demonstrates best practices for the following:
 
 * **Multi-Tiered Data Fallback**: Seamlessly query Redis cache first, fall back to MySQL via Prisma ORM on cache miss, and dynamically create records when no entry exists.
 * **Request Validation**: Enforce strict payload and type checks to reject malformed JSON or missing required fields with standardized responses.
-* **OpenAPI/Swagger Documentation**: Generate interactive API documentation accessible via `/api-docs` using OpenAPI specs.
+* **OpenAPI/Swagger Documentation**: Generate interactive API documentation accessible via `/swagger` using OpenAPI specs.
 * **Automated Unit Testing**: Implement a complete Jest test suite covering all validation edge cases and business logic paths using full mock dependencies (`redis`, `prisma`).
 
 ## Architecture & Data Flow
@@ -43,6 +43,12 @@ Redis is integrated as an in-memory caching layer to optimize query performance 
 * **API Documentation**: OpenAPI 3.0 / Swagger UI (`next-swagger-doc`)
 * **Testing**: Jest with module mocking (`jest.config.ts`)
 
+### Prerequisites
+
+* **Node.js**: 18+ (Node.js 20+ recommended)
+* **npm**: `>=10.0.0`
+* **Docker & Docker Compose**: Installed and active locally
+
 ---
 
 ## Getting Started
@@ -76,6 +82,77 @@ npx prisma migrate dev --name init
 
 ```bash
 npm run dev
+
+```
+
+## 📡 API Endpoint & Example Request
+
+### POST `/api/test`
+
+Description: This endpoint accepts `id1` and `id2` to process a request and returns a unique user ID upon success.
+
+### 📋 Request Details
+* **Method:** `POST`
+* **URL:** `http://localhost:3000/api/test`
+* **Headers:**
+  * `Content-Type: application/json`
+
+---
+
+## Success Case (200 OK)
+
+When both `id1` and `id2` are successfully provided in the request body.
+
+### Request Body
+```json
+{
+  "id1": "123",
+  "id2": "456"
+}
+```
+
+### Example Request (cURL)
+```bash
+curl -X POST http://localhost:3000/api/test \
+  -H "Content-Type: application/json" \
+  -d '{"id1": "123", "id2": "456"}'
+```
+
+### Response (200 OK)
+```json
+{
+  "success": true,
+  "userID": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+---
+
+## Error Case (400 Bad Request)
+
+When one or both of the required fields (`id1` or `id2`) are missing.
+
+### Request Body
+```json
+{
+  "id1": "123"
+}
+```
+
+### Example Request (cURL)
+```bash
+curl -X POST http://localhost:3000/api/test \
+  -H "Content-Type: application/json" \
+  -d '{"id1": "123"}'
+```
+
+### Response (400 Bad Request)
+```json
+{
+  "success": false,
+  "error": "Bad Request",
+  "message": "Both id1 and id2 are required"
+}
 ```
 
 ## API Documentation
@@ -84,7 +161,7 @@ Interactive Swagger API documentation is integrated into the project.
 Swagger UI Endpoint: http://localhost:3000/swagger
 
 ## Testing
-The unit test suite covers all input validation error cases (400) and business flow scenarios (200 OK: Cache Hit, DB Hit, and First-time Creation).
+The unit test suite covers all input validation error cases (400 Bad Request) and business flow scenarios (200 OK: Cache Hit, DB Hit, and First-time Creation).
 
 Run tests:
 ```bash
